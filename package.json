@@ -1,0 +1,39 @@
+{
+  "name": "knot.sh",
+  "version": "1.0.0",
+  "description": "Coding interviews through ssh",
+  "main": "lib/knot.js",
+  "scripts": {
+    "lint": "tslint -c tslint.json src/**/*.ts test/**/*.ts",
+    "mocha": "mocha --timeout=10000 -r ts-node/register/type-check --reporter progress test/*-test.ts",
+    "test": "npm run mocha && npm run lint",
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/indutny/knot.sh.git"
+  },
+  "keywords": [
+    "knot.sh",
+    "coding",
+    "interview",
+    "pair",
+    "programming"
+  ],
+  "author": "Fedor Indutny <fedor@indutny.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/indutny/knot.sh/issues"
+  },
+  "homepage": "https://github.com/indutny/knot.sh#readme",
+  "devDependencies": {
+    "@types/mocha": "^5.2.5",
+    "mocha": "^5.2.0",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.2.1"
+  },
+  "dependencies": {
+    "@types/node": "^10.12.12",
+    "@types/ssh2": "^0.5.37",
+    "ssh2": "^0.6.1"
+  }
+}
