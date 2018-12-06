@@ -46,6 +46,10 @@ export class GithubAuth {
 
     debug(`cache miss for: "${user}"`);
     const res = await fetch(`${GITHUB_API}/users/${user}/keys`);
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(`Invalid github response code ${res.status}`);
+    }
+
     const json = await res.json();
 
     const keys: IGithubKey[] = [];
