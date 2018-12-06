@@ -83,7 +83,7 @@ export class GithubAuth {
       const v = sshKey.createVerify(params.digest) as any;
       v.update(params.nonce);
 
-      if (v.verify(params.signature.toString('base64'))) {
+      if (v.verify(params.signature.toString('base64'), 'base64')) {
         debug(`Success ${key.algorithm}#${key.id}`);
         return true;
       }
