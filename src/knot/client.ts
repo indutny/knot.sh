@@ -72,7 +72,7 @@ export class Client extends EventEmitter {
 
     stdout.write(title);
 
-    const getReadable = () => {
+    const readable = () => {
       return new Promise((resolve, reject) => {
         stdin.once('readable', () => resolve());
       });
@@ -80,7 +80,7 @@ export class Client extends EventEmitter {
 
     for (;;) {
       // Wait for `readable` event
-      await getReadable();
+      await readable();
 
       // Read byte-by-byte
       for (;;) {
