@@ -22,18 +22,20 @@ export class Client extends EventEmitter {
   }
 
   private onReady() {
+    debug(`[${this.username}] ready`);
+
     this.connection.on('session', (accept, reject) => {
-      console.log(`[${this.username}] session start`);
+      debug(`[${this.username}] session start`);
 
       const session = accept();
 
       session.on('pty', (accept, reject, info) => {
-        console.log(`[${this.username}] pty start`);
+        debug(`[${this.username}] pty start`);
         accept();
       });
 
       session.on('shell', (accept, reject) => {
-        console.log(`[${this.username}] shell start`);
+        debug(`[${this.username}] shell start`);
         this.onShell(accept());
       });
     });

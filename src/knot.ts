@@ -51,8 +51,12 @@ export class Knot extends ssh2.Server {
           return;
         }
 
-        done = true;
+        if (!ctx.signature) {
+          // No signature, client is probing
+          return ctx.accept();
+        }
 
+        done = true;
         debug(`successful login for "${ctx.username}"`);
 
         const client = new Client(ctx.username, connection);
