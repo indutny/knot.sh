@@ -72,44 +72,49 @@ export class Client extends EventEmitter {
 
     stdout.write(title);
 
-    return new Promise((resolve, reject) => {
-      const onReadable = () => {
-        for (;;) {
-          const b = stdin.read(1);
-          if (b === null) {
-            break;
-          }
+    const getReadable = () => {
+      return new Promise((resolve, reject) => {
+        stdin.once('readable', () => resolve());
+      });
+    };
 
-          const code = b[0];
-          if (code === 0x3 || code === 0x4) {
-            // ^C, ^D
-            stdin.removeListener('readable', onReadable);
-            return reject(new Error(`Got ^${code === 0x3 ? 'C': 'D'}`));
+    for (;;) {
+      // Wait for `readable` event
+      await getReadable();
 
-          } else if (code === 0xd) {
-            // Enter
-            stdout.write(CRLF_SEQ);
-
-            const input = Buffer.concat(chunks, chunks.length);
-            stdin.removeListener('readable', onReadable);
-            return resolve(input);
-
-          } else if (code === 0x7f) {
-            // Backspace
-            if (chunks.length === 0) {
-              continue;
-            }
-
-            stdout.write(ERASE_SEQ);
-            chunks = chunks.slice(0, -1);
-          } else if (code === 0x9 || code >= 0x20 && code < 0x7f) {
-            // Tab or printable chars
-            chunks.push(b);
-            stdout.write(b);
-          }
+      // Read byte-by-byte
+      for (;;) {
+        const b = stdin.read(1);
+        if (b === null) {
+          break;
         }
-      };
-      stdin.on('readable', onReadable);
-    });
+
+        const code = b[0];
+        if (code === 0x3 || code === 0x4) {
+          // ^C, ^D
+          throw new Error(`Got ^${code === 0x3 ? 'C': 'D'}`);
+
+        } else if (code === 0xd) {
+          // Enter
+          stdout.write(CRLF_SEQ);
+
+          const input = Buffer.concat(chunks, chunks.length);
+          return input;
+
+        } else if (code === 0x7f) {
+          // Backspace
+          if (chunks.length === 0) {
+            continue;
+          }
+
+          stdout.write(ERASE_SEQ);
+          chunks = chunks.slice(0, -1);
+        } else if (code === 0x9 || code >= 0x20 && code < 0x7f) {
+          // Tab or printable chars
+          chunks.push(b);
+          stdout.write(b);
+        }
+      }
+    }
   }
 }
