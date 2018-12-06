@@ -11,10 +11,10 @@ export class Client extends EventEmitter {
 
     this.connection.on('error', (err) => {
       debug(`[${this.username}] connection error: "${err.stack}"`);
-      this.connection.end();
     });
 
     this.connection.once('close', () => {
+      debug(`[${this.username}] connection close`);
       this.emit('close');
     });
 
