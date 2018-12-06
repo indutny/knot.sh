@@ -3,6 +3,7 @@ import * as debugAPI from 'debug';
 import { Buffer } from 'buffer';
 import * as ssh2 from 'ssh2';
 
+import { ANSIReader } from './ansi-reader';
 import { Room } from './room';
 
 const debugFn = debugAPI('knot:client');
@@ -11,6 +12,8 @@ const ERASE_SEQ = Buffer.from('\b \b');
 const CRLF_SEQ = Buffer.from('\r\n');
 
 export class Client extends EventEmitter {
+  private readonly ansiReader = new ANSIReader();
+
   constructor(public readonly username: string,
               private readonly connection: ssh2.Connection) {
     super();
@@ -61,6 +64,10 @@ export class Client extends EventEmitter {
   }
 
   private async onShell(channel: ssh2.ServerChannel) {
+    channel.allowHalfOpen = false;
+
+    channel.stdin.pipe(this.ansiReader);
+
     const roomName = await this.prompt(channel, 'Please enter room id: ');
     this.debug(`got room "${roomName}"`);
 
@@ -71,55 +78,42 @@ export class Client extends EventEmitter {
   }
 
   private async prompt(channel: ssh2.ServerChannel, title: string) {
-    const stdin = channel.stdin;
     const stdout = channel.stdout;
 
-    let chunks: Buffer[] = [];
+    let codes: number[] = [];
 
     stdout.write(title);
 
-    const readable = () => {
-      return new Promise((resolve, reject) => {
-        stdin.once('readable', () => resolve());
-      });
-    };
-
-    for (;;) {
-      // Wait for `readable` event
-      await readable();
-
-      // Read byte-by-byte
-      for (;;) {
-        const b = stdin.read(1);
-        if (b === null) {
-          break;
+    for await (const ch of this.ansiReader[Symbol.asyncIterator]()) {
+      if (ch.type === 'special') {
+        const name = ch.name;
+        if (name === '^C' || name === '^D') {
+          throw new Error(`Got ${name}`);
         }
 
-        const code = b[0];
-        if (code === 0x3 || code === 0x4) {
-          // ^C, ^D
-          throw new Error(`Got ^${code === 0x3 ? 'C': 'D'}`);
-
-        } else if (code === 0xd) {
+        if (name === 'CR') {
           // Enter
           stdout.write(CRLF_SEQ);
+          return Buffer.from(codes).toString();
+        }
 
-          return Buffer.concat(chunks, chunks.length).toString();
-
-        } else if (code === 0x7f) {
+        if (name === 'DEL') {
           // Backspace
-          if (chunks.length === 0) {
+          if (codes.length === 0) {
             continue;
           }
 
           stdout.write(ERASE_SEQ);
-          chunks = chunks.slice(0, -1);
-        } else if (code === 0x9 || code >= 0x20 && code < 0x7f) {
-          // Tab or printable chars
-          chunks.push(b);
-          stdout.write(b);
+          codes = codes.slice(0, -1);
         }
+
+        continue;
       }
+
+      codes.push(ch.code);
+      stdout.write(Buffer.from([ ch.code ]));
     }
+
+    throw new Error('Unexpected');
   }
 }
