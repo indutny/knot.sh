@@ -34,11 +34,15 @@
   },
   "dependencies": {
     "@types/debug": "0.0.31",
+    "@types/lru-cache": "^4.1.1",
     "@types/node": "^10.12.12",
     "@types/node-fetch": "^2.1.4",
     "@types/ssh2": "^0.5.37",
+    "@types/sshpk": "^1.10.3",
     "debug": "^4.1.0",
+    "lru-cache": "^5.1.1",
     "node-fetch": "^2.3.0",
-    "ssh2": "^0.6.1"
+    "ssh2": "^0.6.1",
+    "sshpk": "^1.15.2"
   }
 }

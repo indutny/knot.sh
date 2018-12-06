@@ -37,10 +37,15 @@ export class Knot extends ssh2.Server {
 
       this.githubAuth.verify(ctx.username, {
         algorithm: ctx.key.algo,
-        signatureAlgorithm: ctx.sigAlgo,
+        digest: ctx.sigAlgo,
         nonce: ctx.blob,
-        signature: ctx.signature!,
-      }).then(() => {
+        signature: ctx.signature,
+      }).then((result) => {
+        if (!result) {
+          debug('no appropriate key');
+          return ctx.reject();
+        }
+
         if (done) {
           debug('already authorized');
           return;
