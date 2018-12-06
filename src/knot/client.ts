@@ -3,6 +3,8 @@ import * as debugAPI from 'debug';
 import { Buffer } from 'buffer';
 import * as ssh2 from 'ssh2';
 
+import { Room } from './room';
+
 const debugFn = debugAPI('knot:client');
 
 const ERASE_SEQ = Buffer.from('\b \b');
@@ -59,9 +61,13 @@ export class Client extends EventEmitter {
   }
 
   private async onShell(channel: ssh2.ServerChannel) {
-    const room = await this.prompt(channel, 'Please enter room id: ');
-    this.debug(`got room "${room}"`);
-    channel.end();
+    const roomName = await this.prompt(channel, 'Please enter room id: ');
+    this.debug(`got room "${roomName}"`);
+
+    // TODO(indutny): fetch the room instance using `roomName`
+    const room = new Room(roomName);
+
+    await room.join(this.username, channel);
   }
 
   private async prompt(channel: ssh2.ServerChannel, title: string) {
@@ -98,8 +104,7 @@ export class Client extends EventEmitter {
           // Enter
           stdout.write(CRLF_SEQ);
 
-          const input = Buffer.concat(chunks, chunks.length);
-          return input;
+          return Buffer.concat(chunks, chunks.length).toString();
 
         } else if (code === 0x7f) {
           // Backspace
