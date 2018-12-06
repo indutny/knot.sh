@@ -1,6 +1,6 @@
 {
   "name": "knot.sh",
-  "version": "1.0.0",
+  "version": "0.0.1-alpha",
   "description": "Coding interviews through ssh",
   "main": "lib/knot.js",
   "scripts": {
