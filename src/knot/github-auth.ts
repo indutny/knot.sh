@@ -40,11 +40,11 @@ export class GithubAuth {
 
     const maybeKeys = this.cache.get(user);
     if (maybeKeys !== undefined) {
-      debug(`Cache hit for: "${user}"`);
+      debug(`cache hit for: "${user}"`);
       return await this.check(maybeKeys, params);
     }
 
-    debug(`Cache miss for: "${user}"`);
+    debug(`cache miss for: "${user}"`);
     const res = await fetch(`${GITHUB_API}/users/${user}/keys`);
     const json = await res.json();
 
@@ -59,7 +59,7 @@ export class GithubAuth {
       });
     }
 
-    debug(`Got keys for: "${user}"`);
+    debug(`got keys for: "${user}"`);
     this.cache.set(user, keys);
 
     return this.check(keys, params);
@@ -71,11 +71,11 @@ export class GithubAuth {
         continue;
       }
 
-      debug(`Trying ${key.algorithm}#${key.id}`);
+      debug(`trying ${key.algorithm}#${key.id}`);
 
       // Client is checking if we support this key
       if (!params.signature) {
-        debug(`Tentative success ${key.algorithm}#${key.id}`);
+        debug(`tentative success ${key.algorithm}#${key.id}`);
         return true;
       }
 
@@ -84,7 +84,7 @@ export class GithubAuth {
       v.update(params.nonce);
 
       if (v.verify(params.signature.toString('base64'), 'base64')) {
-        debug(`Success ${key.algorithm}#${key.id}`);
+        debug(`success ${key.algorithm}#${key.id}`);
         return true;
       }
     }
