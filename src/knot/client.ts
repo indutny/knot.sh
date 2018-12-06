@@ -3,7 +3,7 @@ import * as debugAPI from 'debug';
 import { Buffer } from 'buffer';
 import * as ssh2 from 'ssh2';
 
-const debug = debugAPI('knot:client');
+const debugFn = debugAPI('knot:client');
 
 const ERASE_SEQ = Buffer.from('\b \b');
 const CRLF_SEQ = Buffer.from('\r\n');
@@ -14,35 +14,43 @@ export class Client extends EventEmitter {
     super();
 
     this.connection.on('error', (err) => {
-      debug(`[${this.username}] connection error: "${err.stack}"`);
+      this.debug(`connection error: "${err.stack}"`);
     });
 
     this.connection.once('close', () => {
-      debug(`[${this.username}] connection close`);
+      this.debug(`connection close`);
       this.emit('close');
     });
 
     this.connection.once('ready', () => this.onReady());
   }
 
+  private debug(str: string) {
+    if (!debugFn.enabled) {
+      return;
+    }
+
+    debugFn(`[${this.username}] ${str}`);
+  }
+
   private onReady() {
-    debug(`[${this.username}] ready`);
+    this.debug(`ready`);
 
     this.connection.on('session', (accept, reject) => {
-      debug(`[${this.username}] session start`);
+      this.debug(`session start`);
 
       const session = accept();
 
       session.on('pty', (accept, reject, info) => {
-        debug(`[${this.username}] pty start`);
+        this.debug(`pty start`);
         accept();
       });
 
       session.on('shell', (accept, reject) => {
-        debug(`[${this.username}] shell start`);
+        this.debug(`shell start`);
         const shell = accept();
         this.onShell(shell).catch((e) => {
-          debug(`[${this.username}] shell error "${e.stack}"`);
+          this.debug(`shell error "${e.stack}"`);
           shell.stderr.write(`\r\n${e.message}\r\n`);
           this.connection.end();
         });
@@ -52,7 +60,7 @@ export class Client extends EventEmitter {
 
   private async onShell(channel: ssh2.ServerChannel) {
     const room = await this.prompt(channel, 'Please enter room id: ');
-    channel.stdout.write(`Got room: ${room}\r\n`);
+    this.debug(`got room "${room}"`);
     channel.end();
   }
 
