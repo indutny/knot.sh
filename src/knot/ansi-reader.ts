@@ -33,18 +33,27 @@ export class ANSIReader extends Transform {
     for (;;) {
       const code: number = yield;
 
-      if (code === 0x3) {
-        this.push({ type: 'special', name: '^C' });
-      } else if (code === 0x4) {
-        this.push({ type: 'special', name: '^D' });
-      } else if (code === 0xd) {
-        this.push({ type: 'special', name: 'CR' });
-      } else if (code === 0x7f) {
-        this.push({ type: 'special', name: 'DEL' });
-      } else if (code === 0x9 || code >= 0x20 && code < 0x7f) {
+      if (code >= 0x20 && code < 0x7f) {
         // Tab or printable chars
         this.push({ type: 'char', code });
+        continue;
       }
+
+      let name: string;
+      if (code === 0x3) {
+        name = '^C';
+      } else if (code === 0x4) {
+        name = '^D';
+      } else if (code === 0x9) {
+        name = 'TAB';
+      } else if (code === 0xd) {
+        name = 'CR';
+      } else if (code === 0x7f) {
+        name = 'DEL';
+      } else {
+        continue;
+      }
+      this.push({ type: 'special', name });
     }
   }
 }
