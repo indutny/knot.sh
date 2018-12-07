@@ -153,7 +153,21 @@ export class ANSIReader extends Transform {
       name = 'UNKNOWN';
     }
 
-    console.log(name, params);
+    // Few defaults
+    if (name === 'CUU' || name === 'CUD' || name === 'CUF' || name === 'CUB' ||
+        name === 'CNL' || name === 'CPL' || name === 'CHA') {
+      params = params || '1';
+    } else if (name === 'CUP') {
+      let [ row, column ] = (params + ';').split(';', 2);
+      if (!row) {
+        row = '1';
+      }
+      if (!column) {
+        column = '1';
+      }
+      params = `${row};${column}`;
+    }
+
     this.push({ type: 'csi', name, params: params.split(';') });
   }
 }

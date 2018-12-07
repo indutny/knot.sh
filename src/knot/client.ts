@@ -87,7 +87,13 @@ export class Client extends EventEmitter {
 
     stdout.write(title);
 
-    for await (const ch of this.ansiIterator) {
+    for (;;) {
+      const result = await this.ansiIterator.next();
+      if (result.done) {
+        throw new Error('Early end of stream');
+      }
+
+      const ch = result.value;
       if (ch.type === 'special') {
         const name = ch.name;
         if (name === '^C' || name === '^D') {
