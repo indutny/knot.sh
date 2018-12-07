@@ -3,7 +3,7 @@ import * as debugAPI from 'debug';
 import { Buffer } from 'buffer';
 import * as ssh2 from 'ssh2';
 
-import { ANSIReader } from './ansi-reader';
+import { ANSIChar, ANSIReader } from './ansi-reader';
 import { Room } from './room';
 
 const debugFn = debugAPI('knot:client');
@@ -13,6 +13,8 @@ const CRLF_SEQ = Buffer.from('\r\n');
 
 export class Client extends EventEmitter {
   private readonly ansiReader = new ANSIReader();
+  private readonly ansiIterator: AsyncIterableIterator<ANSIChar> =
+    this.ansiReader[Symbol.asyncIterator]();
 
   constructor(public readonly username: string,
               private readonly connection: ssh2.Connection) {
@@ -74,7 +76,7 @@ export class Client extends EventEmitter {
     // TODO(indutny): fetch the room instance using `roomName`
     const room = new Room(roomName);
 
-    await room.join(this.username, channel);
+    await room.join(this.username, channel, this.ansiIterator);
   }
 
   private async prompt(channel: ssh2.ServerChannel, title: string) {
@@ -84,7 +86,7 @@ export class Client extends EventEmitter {
 
     stdout.write(title);
 
-    for await (const ch of this.ansiReader[Symbol.asyncIterator]()) {
+    for await (const ch of this.ansiIterator) {
       if (ch.type === 'special') {
         const name = ch.name;
         if (name === '^C' || name === '^D') {
@@ -107,6 +109,9 @@ export class Client extends EventEmitter {
           codes = codes.slice(0, -1);
         }
 
+        continue;
+      } else if (ch.type === 'csi') {
+        // TODO(indutny): support cursor?
         continue;
       }
 
