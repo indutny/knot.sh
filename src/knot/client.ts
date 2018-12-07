@@ -48,14 +48,15 @@ export class Client extends EventEmitter {
 
       const session = accept();
 
-      session.on('pty', (accept, reject, info) => {
+      session.once('pty', (accept, reject, info) => {
         this.debug(`pty start`);
         accept();
       });
 
-      session.on('shell', (accept, reject) => {
+      session.once('shell', (accept, reject) => {
         this.debug(`shell start`);
-        const shell = accept();
+        const shell = accept() as ssh2.ServerChannel;
+
         this.onShell(shell).catch((e) => {
           this.debug(`shell error "${e.stack}"`);
           shell.stderr.write(`\r\n${e.message}\r\n`);

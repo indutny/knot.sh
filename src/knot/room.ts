@@ -22,9 +22,7 @@ export class Room {
     channel.write(CLEAR_SCREEN);
     channel.write('\x1b[H');
 
-    console.log('here');
     for await (const ch of ansi) {
-      console.log('there', ch);
       if (ch.type === 'special') {
         const name = ch.name;
         if (name === '^C' || name === '^D') {
