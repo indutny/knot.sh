@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import * as ssh2 from 'ssh2';
 
 import { ANSIChar } from './ansi-reader';
@@ -5,7 +6,7 @@ import { ANSIChar } from './ansi-reader';
 const CLEAR_SCREEN = '\x1b[2J';
 
 const MAX_COLUMN = 80;
-const MAX_ROW = 60;
+const MAX_ROW = 40;
 
 interface ICursor {
   column: number;
@@ -14,6 +15,7 @@ interface ICursor {
 
 export class Room {
   public content: string = '';
+  public cursors: Map<string, ICursor> = new Map();
 
   constructor(public readonly name: string) {
   }
@@ -21,6 +23,8 @@ export class Room {
   public async join(username: string, channel: ssh2.ServerChannel,
                     ansi: AsyncIterableIterator<ANSIChar>) {
     const cursor: ICursor = { column: 0, row: 0 };
+
+    this.cursors.set(username, cursor);
 
     channel.write(CLEAR_SCREEN);
     channel.write('\x1b[H');
@@ -40,29 +44,35 @@ export class Room {
       } else if (ch.type === 'csi') {
         const name = ch.name;
 
+        const param = parseInt(ch.params[ch.params.length - 1], 10) | 0;
+        let delta: ICursor;
         if (name === 'CUU') {
-          cursor.row -= parseInt(ch.params[0], 10);
+          delta = { column: 0, row: -param };
         } else if (name === 'CUD') {
-          cursor.row += parseInt(ch.params[0], 10);
+          delta = { column: 0, row: param };
         } else if (name === 'CUF') {
-          cursor.column += parseInt(ch.params[0], 10);
+          delta = { column: param, row: 0 };
         } else if (name === 'CUB') {
-          cursor.column -= parseInt(ch.params[0], 10);
-        } else if (name === 'CUP') {
-          const [ row, column ] = ch.params.map((x) => parseInt(x, 10));
-
-          cursor.row = row;
-          cursor.column = column;
+          delta = { column: -param, row: 0 };
         } else {
+          // Ignore
           continue;
         }
 
-        cursor.row = Math.max(0, Math.min(MAX_ROW, cursor.row));
-        cursor.column = Math.max(0, Math.min(MAX_ROW, cursor.column));
-
+        this.updateCursor(cursor, delta);
         channel.write(`\x1b[${cursor.row + 1};${cursor.column + 1}H`);
       } else {
+        channel.write(Buffer.from([ ch.code ]));
+
+        this.updateCursor(cursor, { column: 1, row: 0 });
+        channel.write(`\x1b[${cursor.row + 1};${cursor.column + 1}H`);
       }
     }
+  }
+
+  private updateCursor(cursor: ICursor, delta: ICursor) {
+    cursor.row = Math.max(0, Math.min(MAX_ROW, cursor.row + delta.row));
+    cursor.column = Math.max(0, Math.min(MAX_COLUMN, 
+      cursor.column + delta.column));
   }
 }
