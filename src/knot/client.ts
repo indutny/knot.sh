@@ -11,6 +11,11 @@ const debugFn = debugAPI('knot:client');
 const ERASE_SEQ = Buffer.from('\b \b');
 const CRLF_SEQ = Buffer.from('\r\n');
 
+interface IWindowSize {
+  readonly columns: number;
+  readonly rows: number;
+}
+
 export class Client extends EventEmitter {
   private readonly ansiReader = new ANSIReader();
   private readonly ansiIterator: AsyncIterableIterator<ANSIChar> =
@@ -48,16 +53,34 @@ export class Client extends EventEmitter {
 
       const session = accept();
 
+      const size: IWindowSize = { columns: 0, rows: 0 };
+
       session.once('pty', (accept, reject, info) => {
         this.debug(`pty start`);
+
+        size.columns = info.cols;
+        size.rows = info.rows;
+
         accept();
       });
+
+      const onWindowChange = (accept, reject, info) => {
+        if (accept) {
+          accept();
+        }
+
+        size.columns = info.cols;
+        size.rows = info.rows;
+      };
+      session.on('window-change', onWindowChange);
 
       session.once('shell', (accept, reject) => {
         this.debug(`shell start`);
         const shell = accept() as ssh2.ServerChannel;
 
-        this.onShell(shell).catch((e) => {
+        session.removeListener('window-change', onWindowChange);
+
+        this.onShell(session, shell, size).catch((e) => {
           this.debug(`shell error "${e.stack}"`);
           shell.stderr.write(`\r\n${e.message}\r\n`);
           this.connection.end();
@@ -66,7 +89,9 @@ export class Client extends EventEmitter {
     });
   }
 
-  private async onShell(channel: ssh2.ServerChannel) {
+  private async onShell(session: ssh2.Session,
+                        channel: ssh2.ServerChannel,
+                        initialSize: IWindowSize) {
     channel.allowHalfOpen = false;
 
     channel.stdin.pipe(this.ansiReader);

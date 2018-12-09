@@ -1,27 +1,23 @@
-import { Buffer } from 'buffer';
 import * as ssh2 from 'ssh2';
 
 import { ANSIChar } from './ansi-reader';
-
-const CLEAR_SCREEN = '\x1b[2J';
-
-import { Cursor } from './cursor';
+import { Editor } from './editor';
 
 export class Room {
   public content: string = '';
-  public cursors: Map<string, Cursor> = new Map();
+  public editors: Map<string, Editor> = new Map();
 
   constructor(public readonly name: string) {
   }
 
   public async join(username: string, channel: ssh2.ServerChannel,
                     ansi: AsyncIterableIterator<ANSIChar>) {
-    const cursor = new Cursor(channel);
+    const editor = new Editor(channel);
 
-    this.cursors.set(username, cursor);
+    this.editors.set(username, editor);
 
-    channel.write(CLEAR_SCREEN);
-    cursor.redraw();
+    editor.clearScreen();
+    editor.redrawCursor();
 
     for (;;) {
       const result = await ansi.next();
@@ -34,27 +30,28 @@ export class Room {
         const name = ch.name;
         if (name === '^C' || name === '^D') {
           throw new Error(`Got ${name}`);
+        } else if (name === 'CR') {
+          editor.column = 0;
+          editor.row++;
         }
       } else if (ch.type === 'csi') {
         const name = ch.name;
 
         const param = parseInt(ch.params[ch.params.length - 1], 10) | 0;
         if (name === 'CUU') {
-          cursor.row -= param;
+          editor.row -= param;
         } else if (name === 'CUD') {
-          cursor.row += param;
+          editor.row += param;
         } else if (name === 'CUF') {
-          cursor.column += param;
+          editor.column += param;
         } else if (name === 'CUB') {
-          cursor.column -= param;
+          editor.column -= param;
         } else {
           // Ignore
           continue;
         }
       } else {
-        channel.write(Buffer.from([ ch.code ]));
-
-        cursor.column++;
+        editor.write(ch.code);
       }
     }
   }
