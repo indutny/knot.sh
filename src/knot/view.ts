@@ -3,10 +3,17 @@ import { Writable } from 'stream';
 const CLEAR_SCREEN = '\x1b[2J';
 const RESET_CURSOR = '\x1b[H';
 
-export class Text {
+export interface IViewFrame {
+  readonly column: number;
+  readonly row: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export class View {
   private readonly privLines: string[] = [];
 
-  constructor(private readonly output: Writable) {
+  constructor() {
   }
 
   public get lines(): ReadonlyArray<string> {
@@ -27,22 +34,27 @@ export class Text {
     this.privLines[row] = line;
   }
 
-  public draw(column: number, row: number, width: number, height: number) {
+  public draw(output: Writable, frame: IViewFrame) {
     let res = CLEAR_SCREEN + RESET_CURSOR;
 
+    const row = frame.row;
+    const endRow = row + frame.height;
+    const column = frame.column;
+    const endColumn = column + frame.width;
+
     let i: number;
-    for (i = row; i < Math.min(this.privLines.length, row + height); i++) {
+    for (i = row; i < Math.min(this.privLines.length, endRow); i++) {
       const line = this.privLines[i];
 
-      res += line.slice(column, column + width) + '|\r\n';
+      res += line.slice(column, endColumn) + '|\r\n';
     }
 
-    for (; i < row + height; i++) {
-      res += ' '.repeat(width) + '|\r\n';
+    for (; i < endRow; i++) {
+      res += ' '.repeat(frame.width) + '|\r\n';
     }
 
-    res += '-'.repeat(width - 1) + '+';
+    res += '-'.repeat(frame.width - 1) + '+';
 
-    this.output.write(res);
+    output.write(res);
   }
 }
