@@ -53,34 +53,17 @@ export class Client extends EventEmitter {
 
       const session = accept();
 
-      const size: IWindowSize = { columns: 0, rows: 0 };
-
       session.once('pty', (accept, reject, info) => {
         this.debug(`pty start`);
 
-        size.columns = info.cols;
-        size.rows = info.rows;
-
         accept();
       });
-
-      const onWindowChange = (accept, reject, info) => {
-        if (accept) {
-          accept();
-        }
-
-        size.columns = info.cols;
-        size.rows = info.rows;
-      };
-      session.on('window-change', onWindowChange);
 
       session.once('shell', (accept, reject) => {
         this.debug(`shell start`);
         const shell = accept() as ssh2.ServerChannel;
 
-        session.removeListener('window-change', onWindowChange);
-
-        this.onShell(session, shell, size).catch((e) => {
+        this.onShell(shell).catch((e) => {
           this.debug(`shell error "${e.stack}"`);
           shell.stderr.write(`\r\n${e.message}\r\n`);
           this.connection.end();
@@ -89,9 +72,7 @@ export class Client extends EventEmitter {
     });
   }
 
-  private async onShell(session: ssh2.Session,
-                        channel: ssh2.ServerChannel,
-                        initialSize: IWindowSize) {
+  private async onShell(channel: ssh2.ServerChannel) {
     channel.allowHalfOpen = false;
 
     channel.stdin.pipe(this.ansiReader);
@@ -105,10 +86,11 @@ export class Client extends EventEmitter {
     await room.join(this.username, channel, this.ansiIterator);
   }
 
-  private async prompt(channel: ssh2.ServerChannel, title: string) {
+  private async prompt(channel: ssh2.ServerChannel, title: string)
+      : Promise<string> {
     const stdout = channel.stdout;
 
-    let codes: number[] = [];
+    let value = '';
 
     stdout.write(title);
 
@@ -128,17 +110,17 @@ export class Client extends EventEmitter {
         if (name === 'CR') {
           // Enter
           stdout.write(CRLF_SEQ);
-          return Buffer.from(codes).toString();
+          return value;
         }
 
         if (name === 'DEL') {
           // Backspace
-          if (codes.length === 0) {
+          if (value.length === 0) {
             continue;
           }
 
           stdout.write(ERASE_SEQ);
-          codes = codes.slice(0, -1);
+          value = value.slice(0, -1);
         }
 
         continue;
@@ -147,8 +129,8 @@ export class Client extends EventEmitter {
         continue;
       }
 
-      codes.push(ch.code);
-      stdout.write(Buffer.from([ ch.code ]));
+      value += ch.value;
+      stdout.write(ch.value);
     }
 
     throw new Error('Unexpected');

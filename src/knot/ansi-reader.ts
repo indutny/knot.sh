@@ -3,7 +3,7 @@ import { Transform, TransformCallback } from 'stream';
 import { Buffer } from 'buffer';
 
 export type ANSIChar =
-  { type: 'char', code: number } |
+  { type: 'char', value: string } |
   { type: 'special', name: string } |
   { type: 'csi', name: string, params: ReadonlyArray<string> };
 
@@ -41,8 +41,28 @@ export class ANSIReader extends Transform {
 
       if (code >= 0x20 && code < 0x7f) {
         // Tab or printable chars
-        this.push({ type: 'char', code });
+        this.push({ type: 'char', value: String.fromCharCode(code) });
         continue;
+      }
+
+      const utfBytes = (code & 0xe0) === 0xc0 ? 2 :
+                       (code & 0xf0) === 0xe0 ? 3 :
+                       (code & 0xf8) === 0xf0 ? 4 : 1;
+
+      if (utfBytes > 1) {
+        let utf = code & ((1 << (7 - utfBytes)) - 1);
+        let invalid = false;
+        for (let i = 1; i < utfBytes; i++) {
+          utf <<= 6;
+
+          const next: number = yield;
+          if ((next & 0xc0) !== 0x80) {
+            invalid = true;
+          }
+
+          utf |= next & 0x3f;
+        }
+        this.push({ type: 'char', value: String.fromCharCode(utf) });
       }
 
       let name: string;
