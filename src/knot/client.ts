@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 import * as ssh2 from 'ssh2';
 
 import { ANSIChar, ANSIReader } from './ansi-reader';
+import { Editor } from './editor';
 import { Room } from './room';
 
 const debugFn = debugAPI('knot:client');
@@ -20,6 +21,7 @@ export class Client extends EventEmitter {
   private readonly ansiReader = new ANSIReader();
   private readonly ansiIterator: AsyncIterableIterator<ANSIChar> =
     this.ansiReader[Symbol.asyncIterator]();
+  private readonly rooms: Map<string, Room> = new Map();
 
   constructor(public readonly username: string,
               private readonly connection: ssh2.Connection) {
@@ -74,16 +76,65 @@ export class Client extends EventEmitter {
 
   private async onShell(channel: ssh2.ServerChannel) {
     channel.allowHalfOpen = false;
-
     channel.stdin.pipe(this.ansiReader);
 
+    // Get the room name
     const roomName = await this.prompt(channel, 'Please enter room id: ');
     this.debug(`got room "${roomName}"`);
 
-    // TODO(indutny): fetch the room instance using `roomName`
-    const room = new Room(roomName);
+    // TODO(indutny): remove old rooms
+    let room: Room;
+    if (this.rooms.has(roomName)) {
+      room = this.rooms.get(roomName)!;
+    } else {
+      room = new Room(roomName);
+      this.rooms.set(roomName, room);
+    }
 
-    await room.join(this.username, channel, this.ansiIterator);
+    // Join the room with a new editor
+    const editor = new Editor(this.username, channel, room.view);
+    room.join(this.username);
+
+    try {
+      for (;;) {
+        const result = await this.ansiIterator.next();
+        if (result.done) {
+          break;
+        }
+
+        const ch = result.value;
+        if (ch.type === 'special') {
+          const name = ch.name;
+          if (name === '^C') {
+            throw new Error(`Got ${name}`);
+          }
+
+          if (name === 'CR') {
+            editor.newLine();
+          } else if (name === 'DEL') {
+            editor.backspace();
+          }
+        } else if (ch.type === 'csi') {
+          const name = ch.name;
+          const param = parseInt(ch.params[ch.params.length - 1], 10) | 0;
+
+          if (name === 'CUU') {
+            editor.moveCursor({ row: -param });
+          } else if (name === 'CUD') {
+            editor.moveCursor({ row: +param });
+          } else if (name === 'CUF') {
+            editor.moveCursor({ column: +param });
+          } else if (name === 'CUB') {
+            editor.moveCursor({ column: -param });
+          }
+        } else {
+          editor.write(ch.value);
+        }
+      }
+    } finally {
+      room.leave(this.username);
+      channel.end();
+    }
   }
 
   private async prompt(channel: ssh2.ServerChannel, title: string)

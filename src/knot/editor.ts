@@ -1,43 +1,52 @@
 import { Buffer } from 'buffer';
 import * as ssh2 from 'ssh2';
 
-const CLEAR_SCREEN = '\x1b[2J';
+import { IViewFrame, View } from './view';
+
+interface ICursorPos {
+  column: number;
+  row: number;
+}
+
+export interface ICursorDelta {
+  readonly column?: number;
+  readonly row?: number;
+}
 
 export class Editor {
-  private privColumn: number = 0;
-  private privRow: number = 0;
+  private readonly cursor: ICursorPos = { row: 0, column: 0 };
 
-  constructor(private readonly channel: ssh2.ServerChannel) {
+  constructor(private readonly username: string,
+              private readonly channel: ssh2.ServerChannel,
+              private readonly view: View) {
   }
 
-  public get column() {
-    return this.privColumn;
-  }
-
-  public set column(value) {
-    this.privColumn = value;
+  public moveCursor(delta: ICursorDelta) {
+    if (delta.column !== undefined) {
+      this.cursor.column += delta.column;
+    }
+    if (delta.row !== undefined) {
+      this.cursor.row += delta.row;
+    }
     this.redrawCursor();
   }
 
-  public get row() {
-    return this.privRow;
+  public resize() {
   }
 
-  public set row(value) {
-    this.privRow = value;
-    this.redrawCursor();
+  public write(value: string) {
   }
 
-  public clearScreen() {
-    this.channel.write(CLEAR_SCREEN);
+  public newLine() {
   }
 
-  public redrawCursor() {
-    this.channel.write(`\x1b[${this.privRow + 1};${this.privColumn + 1}H`);
+  public backspace() {
   }
 
-  public write(code: number) {
-    this.channel.write(Buffer.from([ code ]));
-    this.column++;
+  // Private
+
+  private redrawCursor() {
+    this.channel.write(
+      `\x1b[${this.cursor.row + 1};${this.cursor.column + 1}H`);
   }
 }
