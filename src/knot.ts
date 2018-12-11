@@ -4,6 +4,7 @@ import * as debugAPI from 'debug';
 
 import { Client } from './knot/client';
 import { GithubAuth } from './knot/github-auth';
+import { Room } from './knot/room';
 
 const debug = debugAPI('knot');
 
@@ -16,6 +17,7 @@ export interface IKnotConfig {
 export class Knot extends ssh2.Server {
   private readonly githubAuth: GithubAuth = new GithubAuth();
   private readonly clients: Set<Client> = new Set();
+  private readonly rooms: Map<string, Room> = new Map();
 
   constructor(private readonly config: IKnotConfig) {
     super({
@@ -59,7 +61,7 @@ export class Knot extends ssh2.Server {
         done = true;
         debug(`successful login for "${ctx.username}"`);
 
-        const client = new Client(ctx.username, connection);
+        const client = new Client(ctx.username, this.rooms, connection);
 
         this.clients.add(client);
 

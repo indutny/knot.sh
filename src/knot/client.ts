@@ -12,10 +12,10 @@ const debugFn = debugAPI('knot:client');
 export class Client extends EventEmitter {
   private channel: ssh2.ServerChannel | undefined;
   private readonly ansiReader = new ANSIReader();
-  private readonly rooms: Map<string, Room> = new Map();
   private readonly window = new Window();
 
   constructor(public readonly username: string,
+              private readonly rooms: Map<string, Room>,
               private readonly connection: ssh2.Connection) {
     super();
 
@@ -103,8 +103,10 @@ export class Client extends EventEmitter {
 
     let room: Room;
     if (this.rooms.has(roomName)) {
+      this.debug(`Room exists`);
       room = this.rooms.get(roomName)!;
     } else {
+      this.debug(`Create new room`);
       room = new Room(roomName);
       this.rooms.set(roomName, room);
     }
