@@ -1,4 +1,3 @@
-import { Buffer } from 'buffer';
 import * as ssh2 from 'ssh2';
 
 import { IViewFrame, View } from './view';
