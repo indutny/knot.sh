@@ -1,5 +1,3 @@
-import { Writable } from 'stream';
-
 import { View, ViewEvent } from './base';
 
 export class Prompt extends View {
@@ -68,7 +66,7 @@ export class Prompt extends View {
     return true;
   }
 
-  public draw(output: Writable) {
+  public render() {
     const frame = this.frame;
 
     let res = '';
@@ -76,8 +74,6 @@ export class Prompt extends View {
 
     res += this.title + this.value;
 
-    output.write(res);
-
-    super.draw(output);
+    return res + super.render();
   }
 }

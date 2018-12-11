@@ -1,5 +1,3 @@
-import { Writable } from 'stream';
-
 import { IViewFrame, View, ViewEvent } from './base';
 import { EditorController } from '../controller';
 
@@ -78,7 +76,7 @@ export class Editor extends View {
     return changed;
   }
 
-  public draw(output: Writable) {
+  public render() {
     const lines = this.controller.crop(this.visibleFrame);
 
     const moveCursor = (row: number) => {
@@ -94,8 +92,6 @@ export class Editor extends View {
     // Display current position
     res += `\x1b[${this.cursor.row + 1};${this.cursor.column + 1}H`;
 
-    output.write(res);
-
-    super.draw(output);
+    return res + super.render();
   }
 }

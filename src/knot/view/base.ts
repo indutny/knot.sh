@@ -1,5 +1,3 @@
-import { Writable } from 'stream';
-
 export interface IViewFrame {
   column: number;
   row: number;
@@ -105,9 +103,11 @@ export class View {
     return true;
   }
 
-  public draw(output: Writable) {
+  public render() {
+    let res = '';
     for (const view of this.children) {
-      view.draw(output);
+      res += view.render();
     }
+    return res;
   }
 }

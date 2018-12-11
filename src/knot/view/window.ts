@@ -62,8 +62,11 @@ export class Window extends View {
   }
 
   public draw(output: Writable) {
+    output.write(this.render());
+  }
+
+  public render() {
     // Clear screen and reset cursor
-    output.write('\x1b[2J' + '\x1b[H');
-    super.draw(output);
+    return '\x1b[2J' + '\x1b[H' + super.render();
   }
 }
