@@ -1,10 +1,9 @@
 import * as ssh2 from 'ssh2';
 
-import { ANSIChar } from './ansi-reader';
-import { View } from './view';
+import { EditorController } from './controller';
 
 export class Room {
-  public readonly view = new View();
+  public readonly controller = new EditorController();
 
   constructor(public readonly name: string) {
   }

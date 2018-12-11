@@ -37,15 +37,77 @@ export type ViewEvent = {
 };
 
 export class View {
-  constructor(public readonly output: Writable,
-              public readonly frame: IViewFrame) {
+  public readonly frame: IViewFrame = {
+    column: 0,
+    row: 0,
+    width: 80,
+    height: 40,
+  };
+
+  protected privParent: View | undefined;
+  private readonly privChildren: Set<View> = new Set();
+  private activeChild: View | undefined;
+
+  public get children(): ReadonlyArray<View> {
+    return Array.from(this.privChildren);
   }
 
-  public abstract draw();
+  public get parent(): View | undefined {
+    return this.privParent;
+  }
 
-  // Events
+  public get root(): View {
+    let res: View = this;
+    while (res.privParent) {
+      res = res.privParent;
+    }
+    return res;
+  }
 
-  public onEvent(event: ViewEvent) {
-    // Ignore
+  public addChild(view: View) {
+    this.privChildren.add(view);
+
+    if (view.privParent) {
+      throw new Error('View already has a parent');
+    }
+    view.privParent = this;
+
+    // Make this child active by default
+    this.makeActive(view);
+  }
+
+  public removeChild(view: View) {
+    if (!this.privChildren.has(view)) {
+      throw new Error('View isn\'t a child of this view');
+    }
+
+    this.privChildren.delete(view);
+    view.privParent = undefined;
+
+    if (this.activeChild === view) {
+      this.activeChild = undefined;
+    }
+  }
+
+  public makeActive(view: View) {
+    if (!this.privChildren.has(view)) {
+      throw new Error('View is not a child');
+    }
+
+    this.activeChild = view;
+  }
+
+  public onEvent(event: ViewEvent): boolean {
+    // Propagate to active child
+    if (this.activeChild) {
+      return this.activeChild.onEvent(event);
+    }
+    return true;
+  }
+
+  public draw(output: Writable) {
+    for (const view of this.children) {
+      view.draw(output);
+    }
   }
 }

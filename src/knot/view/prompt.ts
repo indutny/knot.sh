@@ -2,13 +2,12 @@ import { Writable } from 'stream';
 
 import { View, ViewEvent } from './base';
 
-class Prompt extends View {
-  private onValue: undefined | (Error?) => void;
+export class Prompt extends View {
+  private onValue: undefined | ((err?: Error) => void);
   private value: string = '';
 
-  constructor(output: Writable, frame: IViewFrame,
-              private readonly title: string) {
-    super(output, frame);
+  constructor(private readonly title: string) {
+    super();
   }
 
   public present(): Promise<string> {
@@ -36,29 +35,40 @@ class Prompt extends View {
     });
   }
 
-  // Events
+  // View-specific methods
+
+  public addChild(_: View) {
+    throw new Error('Prompt can\'t be a parent view');
+  }
 
   public onEvent(event: ViewEvent) {
+    if (!this.onValue) {
+      throw new Error('Prompt must be presented right after adding to view');
+    }
+
     if (event.name === 'write') {
       this.value += event.value;
     } else if (event.name === 'backspace') {
       this.value = this.value.slice(0, -1);
     } else if (event.name === 'newline') {
       this.onValue();
+      return false;
     } else if (event.name === '^C' || event.name === '^D') {
       this.onValue(new Error(`Interrupted by user with: ${event.name}`));
 
       // No redraw needed
-      return;
+      return false;
     } else {
       // Ignore
-      return;
+      super.onEvent(event);
+      return false;
     }
 
-    this.draw();
+    // Re-draw
+    return true;
   }
 
-  public draw() {
+  public draw(output: Writable) {
     const frame = this.frame;
 
     let res = '';
@@ -66,6 +76,8 @@ class Prompt extends View {
 
     res += this.title + this.value;
 
-    this.output.write(res);
+    output.write(res);
+
+    super.draw(output);
   }
 }

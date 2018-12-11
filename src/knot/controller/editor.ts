@@ -5,21 +5,30 @@ export ICropFrame {
   readonly height: number;
 }
 
-export class TextController {
-  constructor(private privLines: string[]) {
+export class EditorController {
+  constructor(private privLines: string[] = []) {
+  }
+
+  public get lines(): ReadonlyArray<string> {
+    return this.privLines;
   }
 
   public insert(value: string, column: number, row: number) {
+    // Pad rows as needed
     while (this.privLines.length <= row) {
       this.privLines.push('');
     }
 
+    // Pad line as needed
     let line = this.privLines[row];
     while (line.length <= column) {
       line += ' ';
     }
 
+    // Insert text
     line = line.slice(0, column) + value + line.slice(column);
+
+    // Update line
     this.privLines[row] = line;
   }
 
@@ -46,6 +55,7 @@ export class TextController {
       res.push(part);
     }
 
+    // Pad result
     while (res.length < frame.height) {
       res.push('');
     }
