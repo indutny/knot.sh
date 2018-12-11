@@ -5,11 +5,30 @@ import { EditorController } from '../controller';
 
 export class Editor extends View {
   public readonly visibleFrame: IViewFrame;
+  private onExit: undefined | ((err?: Error) => void);
 
   constructor(public readonly controller: EditorController) {
     super();
 
     this.visibleFrame = this.frame;
+  }
+
+  public awaitExit(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let complete = false;
+      this.onExit = (err) => {
+        if (complete) {
+          return;
+        }
+        complete = true;
+
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      };
+    });
   }
 
   // View-specific methods
@@ -34,7 +53,7 @@ export class Editor extends View {
     } else if (event.name === 'backspace') {
       // TODO(indutny): implement me
     } else if (event.name === '^C') {
-      // TODO(indutny): implement me
+      this.onExit!();
     } else if (event.name === 'cursor-move') {
       // TODO(indutny): implement me
     } else {

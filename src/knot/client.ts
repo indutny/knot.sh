@@ -10,6 +10,7 @@ import { Room } from './room';
 const debugFn = debugAPI('knot:client');
 
 export class Client extends EventEmitter {
+  private channel: ssh2.ServerChannel | undefined;
   private readonly ansiReader = new ANSIReader();
   private readonly rooms: Map<string, Room> = new Map();
   private readonly window = new Window();
@@ -54,41 +55,70 @@ export class Client extends EventEmitter {
 
       session.once('shell', (accept, reject) => {
         this.debug(`shell start`);
-        const shell = accept() as ssh2.ServerChannel;
 
-        this.onShell(shell).catch((e) => {
+        this.channel = accept() as ssh2.ServerChannel;
+
+        this.onChannel().catch((e) => {
           this.debug(`shell error "${e.stack}"`);
-          shell.stderr.write(`\r\n${e.message}\r\n`);
+          this.channel!.stderr.write(`\r\n${e.message}\r\n`);
           this.connection.end();
         });
       });
     });
   }
 
-  private async onShell(channel: ssh2.ServerChannel) {
+  private async onChannel() {
+    const channel = this.channel!;
+
     channel.allowHalfOpen = false;
     channel.stdin.pipe(this.ansiReader);
 
-    // Join the room with a new editor
+    await Promise.race([
+      this.loop(),
+      this.present(),
+    ]);
+
+    channel.end();
+  }
+
+  private async loop() {
+    const channel = this.channel!;
+    for await (const ch of this.ansiReader) {
+      this.window.receiveANSI(ch, channel.stdout);
+    }
+  }
+
+  public async present() {
+    const channel = this.channel!;
     const window = this.window;
 
     const prompt = new Prompt('Enter room id: ');
     window.addChild(prompt);
     window.draw(channel.stdout);
 
-    await Promise.all([
-      this.loop(channel),
-      new Promise(async () => {
-        const value = await prompt.present();
-        window.removeChild(prompt);
-        window.draw(channel.stdout);
-      }),
-    ]);
-  }
+    const roomName = await prompt.present();
+    window.removeChild(prompt);
 
-  private async loop(channel: ssh2.ServerChannel) {
-    for await (const ch of this.ansiReader) {
-      this.window.receiveANSI(ch, channel.stdout);
+    this.debug(`Got room name "${roomName}"`);
+
+    let room: Room;
+    if (this.rooms.has(roomName)) {
+      room = this.rooms.get(roomName)!;
+    } else {
+      room = new Room(roomName);
+      this.rooms.set(roomName, room);
+    }
+
+    room.enter(this.username);
+
+    try {
+      const editor = new Editor(room.controller);
+      window.addChild(editor);
+      window.draw(channel.stdout);
+
+      await editor.awaitExit();
+    } finally {
+      room.leave(this.username);
     }
   }
 }

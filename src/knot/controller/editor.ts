@@ -1,4 +1,4 @@
-export ICropFrame {
+export interface ICropFrame {
   readonly column: number;
   readonly row: number;
   readonly width: number;

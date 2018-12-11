@@ -8,7 +8,7 @@ export class Room {
   constructor(public readonly name: string) {
   }
 
-  public join(username: string) {
+  public enter(username: string) {
   }
 
   public leave(username: string) {
