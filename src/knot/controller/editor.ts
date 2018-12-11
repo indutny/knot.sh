@@ -32,7 +32,7 @@ export class EditorController {
     this.privLines[row] = line;
   }
 
-  public remove(column: number, row: number, count: number) {
+  public remove(count: number, column: number, row: number) {
     // Out-of-bounds
     if (row >= this.privLines.length) {
       return;

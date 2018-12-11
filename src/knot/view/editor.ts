@@ -3,9 +3,15 @@ import { Writable } from 'stream';
 import { IViewFrame, View, ViewEvent } from './base';
 import { EditorController } from '../controller';
 
+interface ICursor {
+  column: number;
+  row: number;
+}
+
 export class Editor extends View {
   public readonly visibleFrame: IViewFrame;
   private onExit: undefined | ((err?: Error) => void);
+  private cursor: ICursor = { column: 0, row: 0 };
 
   constructor(public readonly controller: EditorController) {
     super();
@@ -47,15 +53,23 @@ export class Editor extends View {
       this.frame.width = event.size.width;
       this.frame.height = event.size.height;
     } else if (event.name === 'write') {
-      // TODO(indutny): implement me
+      this.controller.insert(event.value, this.cursor.column, this.cursor.row);
+      this.cursor.column += event.value.length;
     } else if (event.name === 'newline') {
-      // TODO(indutny): implement me
+      this.cursor.row++;
+      this.cursor.column = 0;
     } else if (event.name === 'backspace') {
-      // TODO(indutny): implement me
+      this.controller.remove(1, this.cursor.column, this.cursor.row);
+      this.cursor.column -= 1;
     } else if (event.name === '^C') {
       this.onExit!();
     } else if (event.name === 'cursor-move') {
-      // TODO(indutny): implement me
+      if (event.delta.row) {
+        this.cursor.row += event.delta.row;
+      }
+      if (event.delta.column) {
+        this.cursor.column += event.delta.column;
+      }
     } else {
       changed = false;
     }
@@ -76,6 +90,9 @@ export class Editor extends View {
       res += moveCursor(row);
       res += line;
     }
+
+    // Display current position
+    res += `\x1b[${this.cursor.row + 1};${this.cursor.column + 1}H`;
 
     output.write(res);
 
