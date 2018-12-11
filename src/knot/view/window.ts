@@ -67,6 +67,6 @@ export class Window extends View {
 
   public render() {
     // Clear screen and reset cursor
-    return '\x1b[2J' + '\x1b[H' + super.render();
+    return '\x1b[H\x1b[J' + super.render();
   }
 }
