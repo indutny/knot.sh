@@ -1,26 +1,13 @@
-export interface IViewFrame {
-  column: number;
-  row: number;
-  width: number;
-  height: number;
-}
+import { Output } from '../output';
 
 export interface ICursorDelta {
   readonly column?: number;
   readonly row?: number;
 }
 
-export interface IWindowSize {
-  readonly width: number;
-  readonly height: number;
-}
-
 export type ViewEvent = {
   readonly name: 'cursor-move';
   readonly delta: ICursorDelta;
-} | {
-  readonly name: 'resize';
-  readonly size: IWindowSize;
 } | {
   readonly name: 'write';
   readonly value: string;
@@ -35,13 +22,6 @@ export type ViewEvent = {
 };
 
 export class View {
-  public readonly frame: IViewFrame = {
-    column: 0,
-    row: 0,
-    width: 80,
-    height: 40,
-  };
-
   protected privParent: View | undefined;
   private readonly privChildren: Set<View> = new Set();
   private activeChild: View | undefined;
@@ -103,10 +83,10 @@ export class View {
     return true;
   }
 
-  public render() {
+  public render(output: Output) {
     let res = '';
     for (const view of this.children) {
-      res += view.render();
+      res += view.render(output);
     }
     return res;
   }

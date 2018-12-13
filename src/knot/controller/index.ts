@@ -1,1 +1,0 @@
-export { EditorController } from './editor';

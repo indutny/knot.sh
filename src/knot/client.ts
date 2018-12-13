@@ -5,7 +5,7 @@ import * as ssh2 from 'ssh2';
 
 import { ANSIChar, ANSIReader } from './ansi-reader';
 import { Editor, Prompt, Window } from './view';
-import { Room } from './room';
+import { Room } from './model';
 
 const debugFn = debugAPI('knot:client');
 
@@ -114,7 +114,7 @@ export class Client extends EventEmitter {
     room.enter(this.username);
 
     try {
-      const editor = new Editor(room.controller);
+      const editor = new Editor(room.editor);
       window.addChild(editor);
       window.draw(channel.stdout);
 

@@ -1,5 +1,7 @@
-import { IViewFrame, View, ViewEvent } from './base';
-import { EditorController } from '../controller';
+import { Editor as EditorModel } from '../model';
+import { Output } from '../output';
+
+import { View, ViewEvent } from './base';
 
 interface ICursor {
   column: number;
@@ -7,14 +9,12 @@ interface ICursor {
 }
 
 export class Editor extends View {
-  public readonly visibleFrame: IViewFrame;
+  public readonly offset: ICursor = { column: 0, row: 0 };
   private onExit: undefined | ((err?: Error) => void);
   private cursor: ICursor = { column: 0, row: 0 };
 
-  constructor(public readonly controller: EditorController) {
+  constructor(public readonly model: EditorModel) {
     super();
-
-    this.visibleFrame = this.frame;
   }
 
   public awaitExit(): Promise<void> {
@@ -44,20 +44,14 @@ export class Editor extends View {
   public onEvent(event: ViewEvent) {
     let changed = true;
 
-    // Keep being full-screen
-    if (event.name === 'resize') {
-      this.frame.row = 0;
-      this.frame.column = 0;
-      this.frame.width = event.size.width;
-      this.frame.height = event.size.height;
-    } else if (event.name === 'write') {
-      this.controller.insert(event.value, this.cursor.column, this.cursor.row);
+    if (event.name === 'write') {
+      this.model.insert(event.value, this.cursor.column, this.cursor.row);
       this.cursor.column += event.value.length;
     } else if (event.name === 'newline') {
       this.cursor.row++;
       this.cursor.column = 0;
     } else if (event.name === 'backspace') {
-      this.controller.remove(1, this.cursor.column, this.cursor.row);
+      this.model.remove(1, this.cursor.column, this.cursor.row);
       this.cursor.column -= 1;
     } else if (event.name === '^C') {
       this.onExit!();
@@ -76,22 +70,20 @@ export class Editor extends View {
     return changed;
   }
 
-  public render() {
-    const lines = this.controller.crop(this.visibleFrame);
+  public render(output: Output) {
+    const lines = this.model.crop(Object.extend({
+      width: output.width,
+      height: output.height,
+    }, offset));
 
-    const moveCursor = (row: number) => {
-      return `\x1b[${this.frame.row + row + 1};${this.frame.column + 1}H`;
-    };
-
-    let res = '';
     for (const [ row, line ] of lines.entries()) {
-      res += moveCursor(row);
-      res += line;
+      output.write(0, row, line);
+      output.clearRight(line.length, row);
     }
 
     // Display current position
-    res += `\x1b[${this.cursor.row + 1};${this.cursor.column + 1}H`;
+    output.setCursor(this.cursor);
 
-    return res + super.render();
+    super.render(output);
   }
 }

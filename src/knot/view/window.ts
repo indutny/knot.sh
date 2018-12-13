@@ -1,4 +1,4 @@
-import { Writable } from 'stream';
+import { Output } from '../output';
 
 import { ANSIChar } from '../ansi-reader';
 import { View, ViewEvent, ICursorDelta } from './base';
@@ -7,7 +7,7 @@ import { View, ViewEvent, ICursorDelta } from './base';
 const INDENT = '  ';
 
 export class Window extends View {
-  public receiveANSI(ch: ANSIChar, output: Writable): boolean {
+  public receiveANSI(ch: ANSIChar, output: Output): boolean {
     let event: ViewEvent;
     if (ch.type === 'char') {
       event = { name: 'write', value: ch.value };
@@ -55,18 +55,9 @@ export class Window extends View {
 
     // Changes in either of children chain
     if (this.onEvent(event)) {
-      this.draw(output);
+      this.render(output);
       return true;
     }
     return false;
-  }
-
-  public draw(output: Writable) {
-    output.write(this.render());
-  }
-
-  public render() {
-    // Clear screen and reset cursor
-    return '\x1b[H\x1b[J' + super.render();
   }
 }

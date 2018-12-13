@@ -5,7 +5,7 @@ export interface ICropFrame {
   readonly height: number;
 }
 
-export class EditorController {
+export class Editor {
   constructor(private privLines: string[] = []) {
   }
 

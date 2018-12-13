@@ -1,9 +1,7 @@
-import * as ssh2 from 'ssh2';
-
-import { EditorController } from './controller';
+import { Editor } from './model';
 
 export class Room {
-  public readonly controller = new EditorController();
+  public readonly editor = new Editor();
 
   constructor(public readonly name: string) {
   }

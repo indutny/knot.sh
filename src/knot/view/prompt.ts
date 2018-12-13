@@ -1,3 +1,5 @@
+import { Output } from '../output';
+
 import { View, ViewEvent } from './base';
 
 export class Prompt extends View {
@@ -66,14 +68,11 @@ export class Prompt extends View {
     return true;
   }
 
-  public render() {
-    const frame = this.frame;
+  public render(output: Output) {
+    const toDisplay = this.title + this.value;
+    output.write(0, 0, toDisplay);
+    output.clearRight(toDisplay.length, 0);
 
-    let res = '';
-    res += `\x1b[${frame.row + 1};${frame.column + 1}H`;
-
-    res += this.title + this.value;
-
-    return res + super.render();
+    super.render(output);
   }
 }
