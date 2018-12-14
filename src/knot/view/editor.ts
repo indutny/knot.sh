@@ -48,11 +48,17 @@ export class Editor extends View {
       this.model.insert(event.value, this.cursor.column, this.cursor.row);
       this.cursor.column += event.value.length;
     } else if (event.name === 'newline') {
+      this.model.insertNewline(this.cursor.column, this.cursor.row);
       this.cursor.row++;
       this.cursor.column = 0;
     } else if (event.name === 'backspace') {
-      this.cursor.column -= 1;
-      this.model.remove(1, this.cursor.column, this.cursor.row);
+      if (this.cursor.column === 0) {
+        this.cursor.column = this.model.removeNewline(this.cursor.row);
+        this.cursor.row--;
+      } else {
+        this.cursor.column -= 1;
+        this.model.remove(1, this.cursor.column, this.cursor.row);
+      }
     } else if (event.name === '^C') {
       this.onExit!();
     } else if (event.name === 'cursor-move') {
@@ -65,6 +71,11 @@ export class Editor extends View {
     } else {
       changed = false;
     }
+
+    this.cursor.row = Math.max(0, this.cursor.row);
+    this.cursor.row = Math.min(this.model.lines.length - 1, this.cursor.row);
+
+    this.cursor.column = Math.max(0, this.cursor.column);
 
     super.onEvent(event);
     return changed;

@@ -8,7 +8,11 @@ export interface ICropFrame {
 export class Editor {
   private listeners: Array<() => void> = [];
 
-  constructor(private privLines: string[] = []) {
+  constructor(private privLines: string[] = [ '' ]) {
+    // Ensure non-empty text
+    if (this.privLines.length === 0) {
+      this.privLines.push('');
+    }
   }
 
   public async awaitChange() {
@@ -42,6 +46,18 @@ export class Editor {
     this.emitChanges();
   }
 
+  public insertNewline(column: number, row: number) {
+    // Out-of-bounds
+    if (row >= this.privLines.length) {
+      return;
+    }
+
+    const line = this.privLines[row];
+
+    this.privLines.splice(row, 1, line.slice(0, column), line.slice(column));
+    this.emitChanges();
+  }
+
   public remove(count: number, column: number, row: number) {
     // Out-of-bounds
     if (row >= this.privLines.length) {
@@ -52,6 +68,23 @@ export class Editor {
     this.privLines[row] = line.slice(0, column) + line.slice(column + count);
 
     this.emitChanges();
+  }
+
+  public removeNewline(row: number): number {
+    // Out-of-bounds
+    if (row <= 0 || row >= this.privLines.length) {
+      return 0;
+    }
+
+    const prev = this.privLines[row - 1];
+    const current = this.privLines[row];
+
+    this.privLines[row - 1] += current;
+    this.privLines.splice(row, 1);
+
+    this.emitChanges();
+
+    return prev.length;
   }
 
   public crop(frame: ICropFrame): ReadonlyArray<string> {
