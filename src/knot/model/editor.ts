@@ -6,7 +6,15 @@ export interface ICropFrame {
 }
 
 export class Editor {
+  private listeners: Array<() => void> = [];
+
   constructor(private privLines: string[] = []) {
+  }
+
+  public async awaitChange() {
+    return new Promise((resolve) => {
+      this.listeners.push(resolve);
+    });
   }
 
   public get lines(): ReadonlyArray<string> {
@@ -30,6 +38,8 @@ export class Editor {
 
     // Update line
     this.privLines[row] = line;
+
+    this.emitChanges();
   }
 
   public remove(count: number, column: number, row: number) {
@@ -40,6 +50,8 @@ export class Editor {
 
     const line = this.privLines[row];
     this.privLines[row] = line.slice(0, column) + line.slice(column + count);
+
+    this.emitChanges();
   }
 
   public crop(frame: ICropFrame): ReadonlyArray<string> {
@@ -61,5 +73,13 @@ export class Editor {
     }
 
     return res;
+  }
+
+  private emitChanges() {
+    const listeners = this.listeners;
+    this.listeners = [];
+    for (const listener of listeners) {
+      listener();
+    }
   }
 }

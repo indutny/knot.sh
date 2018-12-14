@@ -121,9 +121,20 @@ export class Client extends EventEmitter {
       window.addChild(editor);
       window.redraw(this.screenBackend!);
 
-      await editor.awaitExit();
+      await Promise.race([
+        editor.awaitExit(),
+        this.roomLoop(room, window),
+      ]);
     } finally {
       room.leave(this.username);
+    }
+  }
+
+  public async roomLoop(room: Room, window: Window) {
+    for (;;) {
+      await room.editor.awaitChange();
+
+      window.redraw(this.screenBackend!);
     }
   }
 }
