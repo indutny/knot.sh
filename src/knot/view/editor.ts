@@ -51,8 +51,8 @@ export class Editor extends View {
       this.cursor.row++;
       this.cursor.column = 0;
     } else if (event.name === 'backspace') {
-      this.model.remove(1, this.cursor.column, this.cursor.row);
       this.cursor.column -= 1;
+      this.model.remove(1, this.cursor.column, this.cursor.row);
     } else if (event.name === '^C') {
       this.onExit!();
     } else if (event.name === 'cursor-move') {
