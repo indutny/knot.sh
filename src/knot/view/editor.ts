@@ -75,7 +75,9 @@ export class Editor extends View {
     this.cursor.row = Math.max(0, this.cursor.row);
     this.cursor.row = Math.min(this.model.lines.length - 1, this.cursor.row);
 
+    const line = this.model.lines[this.cursor.row];
     this.cursor.column = Math.max(0, this.cursor.column);
+    this.cursor.column = Math.min(line.length - 1, this.cursor.column);
 
     super.onEvent(event);
     return changed;
