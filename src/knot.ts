@@ -4,7 +4,7 @@ import * as debugAPI from 'debug';
 
 import { Client } from './knot/client';
 import { GithubAuth } from './knot/github-auth';
-import { Room } from './knot/room';
+import { Room } from './knot/model/room';
 
 const debug = debugAPI('knot');
 
