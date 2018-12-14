@@ -1,8 +1,14 @@
 import { Writable } from 'stream';
 
-class Storage {
+interface ICursor {
+  row: number;
+  column: number;
+}
+
+export class Backend {
   private readonly screen: string[];
   private readonly changed: boolean[];
+  private readonly cursor: ICursor = { row: 0, column: 0 };
 
   constructor(private readonly stream: Writable,
               private privWidth: number,
@@ -10,7 +16,6 @@ class Storage {
     this.screen = new Array(privHeight * privWidth).fill(' ');
     this.changed = new Array(this.screen.length).fill(false);
   }
-
 
   public get width() {
     return this.privWidth;
@@ -52,5 +57,10 @@ class Storage {
       this.screen[off + i] = value;
       this.changed[off + i] = true;
     }
+  }
+
+  public setCursor(row: number, column: number) {
+    this.cursor.row = row;
+    this.cursor.column = column;
   }
 }

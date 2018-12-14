@@ -1,4 +1,4 @@
-import { Output } from '../output';
+import { Frontend as Screen } from '../screen';
 
 export interface ICursorDelta {
   readonly column?: number;
@@ -83,11 +83,9 @@ export class View {
     return true;
   }
 
-  public render(output: Output) {
-    let res = '';
+  public render(screen: Screen) {
     for (const view of this.children) {
-      res += view.render(output);
+      view.render(screen);
     }
-    return res;
   }
 }

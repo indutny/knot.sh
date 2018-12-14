@@ -5,12 +5,14 @@ import * as ssh2 from 'ssh2';
 
 import { ANSIChar, ANSIReader } from './ansi-reader';
 import { Editor, Prompt, Window } from './view';
+import { Backend as ScreenBackend } from './screen';
 import { Room } from './model';
 
 const debugFn = debugAPI('knot:client');
 
 export class Client extends EventEmitter {
   private channel: ssh2.ServerChannel | undefined;
+  private screenBackend: ScreenBackend | undefined;
   private readonly ansiReader = new ANSIReader();
   private readonly window = new Window();
 
@@ -58,6 +60,9 @@ export class Client extends EventEmitter {
 
         this.channel = accept() as ssh2.ServerChannel;
 
+        // TODO(indutny): proper width, height
+        this.screenBackend = new ScreenBackend(this.channel, 80, 40);
+
         this.onChannel().catch((e) => {
           this.debug(`shell error "${e.stack}"`);
           this.channel!.stderr.write(`\r\n${e.message}\r\n`);
@@ -82,19 +87,17 @@ export class Client extends EventEmitter {
   }
 
   private async loop() {
-    const channel = this.channel!;
     for await (const ch of this.ansiReader) {
-      this.window.receiveANSI(ch, channel.stdout);
+      this.window.receiveANSI(ch, this.screenBackend!);
     }
   }
 
   public async present() {
-    const channel = this.channel!;
     const window = this.window;
 
     const prompt = new Prompt('Enter room id: ');
     window.addChild(prompt);
-    window.draw(channel.stdout);
+    window.redraw(this.screenBackend!);
 
     const roomName = await prompt.present();
     window.removeChild(prompt);
@@ -116,7 +119,7 @@ export class Client extends EventEmitter {
     try {
       const editor = new Editor(room.editor);
       window.addChild(editor);
-      window.draw(channel.stdout);
+      window.redraw(this.screenBackend!);
 
       await editor.awaitExit();
     } finally {

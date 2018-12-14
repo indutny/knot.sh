@@ -1,4 +1,4 @@
-import { Editor } from './model';
+import { Editor } from '../model';
 
 export class Room {
   public readonly editor = new Editor();

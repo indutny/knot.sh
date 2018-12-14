@@ -1,4 +1,4 @@
-import { Output } from '../output';
+import { Frontend as Screen } from '../screen';
 
 import { View, ViewEvent } from './base';
 
@@ -68,11 +68,11 @@ export class Prompt extends View {
     return true;
   }
 
-  public render(output: Output) {
+  public render(screen: Screen) {
     const toDisplay = this.title + this.value;
-    output.write(0, 0, toDisplay);
-    output.clearRight(toDisplay.length, 0);
+    screen.write(0, 0, toDisplay);
+    screen.clearRight(toDisplay.length, 0);
 
-    super.render(output);
+    super.render(screen);
   }
 }

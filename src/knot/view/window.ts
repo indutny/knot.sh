@@ -1,4 +1,4 @@
-import { Output } from '../output';
+import { Frontend as Screen, Backend } from '../screen';
 
 import { ANSIChar } from '../ansi-reader';
 import { View, ViewEvent, ICursorDelta } from './base';
@@ -7,7 +7,7 @@ import { View, ViewEvent, ICursorDelta } from './base';
 const INDENT = '  ';
 
 export class Window extends View {
-  public receiveANSI(ch: ANSIChar, output: Output): boolean {
+  public receiveANSI(ch: ANSIChar, backend: Backend): boolean {
     let event: ViewEvent;
     if (ch.type === 'char') {
       event = { name: 'write', value: ch.value };
@@ -55,9 +55,13 @@ export class Window extends View {
 
     // Changes in either of children chain
     if (this.onEvent(event)) {
-      this.render(output);
+      this.redraw(backend);
       return true;
     }
     return false;
+  }
+
+  public redraw(backend: Backend) {
+    this.render(new Screen(backend));
   }
 }

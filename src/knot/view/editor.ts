@@ -1,5 +1,5 @@
 import { Editor as EditorModel } from '../model';
-import { Output } from '../output';
+import { Frontend as Screen } from '../screen';
 
 import { View, ViewEvent } from './base';
 
@@ -70,20 +70,20 @@ export class Editor extends View {
     return changed;
   }
 
-  public render(output: Output) {
-    const lines = this.model.crop(Object.extend({
-      width: output.width,
-      height: output.height,
-    }, offset));
+  public render(screen: Screen) {
+    const lines = this.model.crop(Object.assign({
+      width: screen.width,
+      height: screen.height,
+    }, this.offset));
 
     for (const [ row, line ] of lines.entries()) {
-      output.write(0, row, line);
-      output.clearRight(line.length, row);
+      screen.write(0, row, line);
+      screen.clearRight(line.length, row);
     }
 
     // Display current position
-    output.setCursor(this.cursor);
+    screen.setCursor(this.cursor);
 
-    super.render(output);
+    super.render(screen);
   }
 }
