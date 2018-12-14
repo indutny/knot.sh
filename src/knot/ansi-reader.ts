@@ -110,8 +110,10 @@ export class ANSIReader extends Transform {
     }
 
     if (ch !== '[') {
+      // TODO(indutny): It seems that ESC just comes as `\x1b` here...
+      // How do we handle it?
       this.special('ESC');
-      this.push({ type: 'char', code: firstCode });
+      this.push({ type: 'char', value: ch });
       return;
     }
 
