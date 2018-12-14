@@ -82,7 +82,7 @@ export class Editor extends View {
     }
 
     // Display current position
-    screen.setCursor(this.cursor);
+    screen.setCursor(this.cursor.column, this.cursor.row);
 
     super.render(screen);
   }

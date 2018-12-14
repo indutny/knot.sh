@@ -63,5 +63,6 @@ export class Window extends View {
 
   public redraw(backend: Backend) {
     this.render(new Screen(backend));
+    backend.send();
   }
 }

@@ -72,6 +72,7 @@ export class Prompt extends View {
     const toDisplay = this.title + this.value;
     screen.write(0, 0, toDisplay);
     screen.clearRight(toDisplay.length, 0);
+    screen.setCursor(toDisplay.length, 0);
 
     super.render(screen);
   }
